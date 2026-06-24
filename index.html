@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AR Візитівка</title>
+    
+    <!-- Підключення бібліотек -->
+    <script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-image-aframe.prod.js"></script>
+    
+    <style>
+        body { margin: 0; overflow: hidden; font-family: Arial, sans-serif; }
+        
+        /* Стилі для інтерфейсу та кнопок */
+        .ui-overlay {
+            position: fixed;
+            bottom: 30px;
+            left: 0;
+            right: 0;
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            z-index: 10;
+            pointer-events: none;
+        }
+        .ui-overlay button {
+            pointer-events: auto;
+            padding: 15px 30px;
+            border: none;
+            border-radius: 50px;
+            background: rgba(0,0,0,0.7);
+            color: white;
+            font-size: 18px;
+            font-weight: bold;
+            backdrop-filter: blur(5px);
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border: 1px solid rgba(255,255,255,0.2);
+        }
+        .ui-overlay button:hover {
+            transform: scale(1.05);
+            background: #4CAF50;
+            box-shadow: 0 0 20px #4CAF50;
+        }
+        
+        .hint {
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0,0,0,0.6);
+            color: white;
+            padding: 12px 25px;
+            border-radius: 30px;
+            font-size: 14px;
+            backdrop-filter: blur(4px);
+            z-index: 5;
+            pointer-events: none;
+            text-align: center;
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+        
+        @media (max-width: 600px) {
+            .ui-overlay { bottom: 20px; gap: 10px; flex-wrap: wrap; }
+            .ui-overlay button { padding: 12px 20px; font-size: 14px; }
+            .hint { font-size: 12px; padding: 8px 15px; }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Підказка для користувача -->
+    <div class="hint" id="hintText">📇 Наведіть камеру на візитівку</div>
+
+    <!-- Сцена AR -->
+    <a-scene 
+        mindar-image="imageTargetSrc: ./assets/targets/target.mind; autoStart: true; uiLoading: false; uiScanning: false;"
+        color-space="sRGB" 
+        renderer="colorManagement: true, physicallyCorrectLights" 
+        vr-mode-ui="enabled: false" 
+        device-orientation-permission-ui="enabled: false"
+        embedded>
+        
+        <!-- Ресурси (медіа та 3D-моделі) -->
+        <a-assets>
+            <!-- Зображення для фону візитівки -->
+            <img id="cardImage" src="./assets/images/business-card.png">
+            
+            <!-- 3D-модель (наприклад, логотип або аватар) -->
+            <a-asset-item id="avatarModel" src=".\assets\models\avatar.glb"></a-asset-item>
+            
+            <!-- Відеофайл -->
+            <video id="introVideo" src="./assets/videos/intro.mp4" preload="auto" muted playsinline></video>
+            
+            <!-- Аудіофайл -->
+            <audio id="bgMusic" src="./assets/audio/background.mp3" preload="auto"></audio>
+            
+            <!-- Додаткові іконки для соцмереж -->
+            <img id="iconGithub" src="./assets/icons/github.png">
+            <img id="iconLinkedin" src="./assets/icons/linkedin.png">
+            <img id="iconTwitter" src="./assets/icons/twitter.png">
+        </a-assets>
+        
+        <!-- Камера -->
+        <a-camera position="0 0 0" look-controls="enabled: false" 
+                  cursor="fuse: false; rayOrigin: mouse;" 
+                  raycaster="near: 10; far: 10000; objects: .clickable"></a-camera>
+        
+        <!-- Ціль (маркер) і весь контент на ньому -->
+        <a-entity id="targetEntity" mindar-image-target="targetIndex: 0">
+            
+            <!-- 1. ФОН: Зображення візитівки (показується відразу при виявленні) -->
+            <a-image id="cardBackground" src="#cardImage" position="0 0 0" height="0.552" width="1"></a-image>
+            
+            <!-- 2. ВІДЕО: Запускається по кліку -->
+            <a-video id="videoElement" src="#introVideo" position="0 0 0.01" height="0.5" width="0.9" 
+                     visible="false" class="clickable" 
+                     material="color: white; transparent: true; opacity: 1.0"></a-video>
+            
+            <!-- 3. 3D-МОДЕЛЬ: З'являється анімованою по кліку -->
+            <a-gltf-model id="modelElement" src="#avatarModel" 
+                          position="0 0.5 0.1" scale="0.005 0.005 0.005" 
+                          visible="false" class="clickable"
+                          animation="property: rotation; to: 0 360 0; loop: true; dur: 5000; easing: linear">
+            </a-gltf-model>
+            
+            <!-- 4. ТЕКСТ: Додаткова інформація -->
+            <a-text id="infoText" value="Натисни на елементи!" 
+                    color="white" align="center" 
+                    position="0 -0.25 0.02" scale="0.8 0.8 0.8"
+                    visible="false" class="clickable"
+                    background="color: rgba(0,0,0,0.7); padding: 0.1; border-radius: 0.05;">
+            </a-text>
+            
+            <!-- 5. ІКОНКИ СОЦМЕРЕЖ: Відкривають посилання -->
+            <a-image id="githubIcon" src="#iconGithub" position="-0.35 -0.28 0.02" height="0.07" width="0.07" 
+                     visible="false" class="clickable" opacity="0.8"></a-image>
+            <a-image id="linkedinIcon" src="#iconLinkedin" position="0 -0.28 0.02" height="0.07" width="0.07" 
+                     visible="false" class="clickable" opacity="0.8"></a-image>
+            <a-image id="twitterIcon" src="#iconTwitter" position="0.35 -0.28 0.02" height="0.07" width="0.07" 
+                     visible="false" class="clickable" opacity="0.8"></a-image>
+            
+        </a-entity>
+    </a-scene>
+
+    <!-- Кнопки управління -->
+    <div class="ui-overlay">
+        <button id="showVideoBtn">▶ Відео</button>
+        <button id="showModelBtn">🧊 3D Модель</button>
+        <button id="showInfoBtn">ℹ️ Інформація</button>
+        <button id="resetBtn">🔄 Скинути</button>
+    </div>
+
+    <script>
+        document.addEventListener("DOMContentLoaded", function() {
+            
+            // --- Отримуємо всі елементи сцени ---
+            const targetEntity = document.getElementById('targetEntity');
+            const videoEl = document.getElementById('videoElement');
+            const modelEl = document.getElementById('modelElement');
+            const infoText = document.getElementById('infoText');
+            const githubIcon = document.getElementById('githubIcon');
+            const linkedinIcon = document.getElementById('linkedinIcon');
+            const twitterIcon = document.getElementById('twitterIcon');
+            const bgAudio = document.getElementById('bgMusic');
+            const hintText = document.getElementById('hintText');
+            
+            // --- Стан об'єктів ---
+            let isVideoVisible = false;
+            let isModelVisible = false;
+            let isInfoVisible = false;
+            let isAudioPlaying = false;
+            let isTargetFound = false;
+            
+            // --- Функції управління ---
+            function showVideo() {
+                isVideoVisible = !isVideoVisible;
+                videoEl.setAttribute('visible', isVideoVisible);
+                if (isVideoVisible) {
+                    videoEl.components.material.material.map.image.play();
+                    hintText.textContent = '🎥 Відео програє';
+                } else {
+                    videoEl.components.material.material.map.image.pause();
+                    hintText.textContent = '📇 Відео зупинено';
+                }
+            }
+            
+            function showModel() {
+                isModelVisible = !isModelVisible;
+                modelEl.setAttribute('visible', isModelVisible);
+                hintText.textContent = isModelVisible ? '🧊 3D модель активна' : '📇 3D модель прихована';
+            }
+            
+            function showInfo() {
+                isInfoVisible = !isInfoVisible;
+                infoText.setAttribute('visible', isInfoVisible);
+                // Показуємо іконки соцмереж разом з інформацією
+                githubIcon.setAttribute('visible', isInfoVisible);
+                linkedinIcon.setAttribute('visible', isInfoVisible);
+                twitterIcon.setAttribute('visible', isInfoVisible);
+                hintText.textContent = isInfoVisible ? 'ℹ️ Додаткова інформація' : '📇 Інформація прихована';
+            }
+            
+            function resetAll() {
+                // Ховаємо всі елементи
+                videoEl.setAttribute('visible', false);
+                videoEl.components.material.material.map.image.pause();
+                modelEl.setAttribute('visible', false);
+                infoText.setAttribute('visible', false);
+                githubIcon.setAttribute('visible', false);
+                linkedinIcon.setAttribute('visible', false);
+                twitterIcon.setAttribute('visible', false);
+                
+                isVideoVisible = false;
+                isModelVisible = false;
+                isInfoVisible = false;
+                
+                hintText.textContent = '📇 Всі елементи приховано';
+            }
+            
+            // --- Обробники подій для кнопок інтерфейсу ---
+            document.getElementById('showVideoBtn').addEventListener('click', showVideo);
+            document.getElementById('showModelBtn').addEventListener('click', showModel);
+            document.getElementById('showInfoBtn').addEventListener('click', showInfo);
+            document.getElementById('resetBtn').addEventListener('click', resetAll);
+            
+            // --- Обробники кліків на елементах візитівки ---
+            videoEl.addEventListener('click', function() {
+                // По клику на відео - ставимо на паузу або продовжуємо
+                const vid = this.components.material.material.map.image;
+                if (vid.paused) {
+                    vid.play();
+                } else {
+                    vid.pause();
+                }
+            });
+            
+            modelEl.addEventListener('click', function() {
+                // По клику на модель - змінюємо її розмір (ефект)
+                const currentScale = this.getAttribute('scale');
+                const newScale = currentScale.x === 0.005 ? 0.008 : 0.005;
+                this.setAttribute('scale', newScale + ' ' + newScale + ' ' + newScale);
+            });
+            
+            infoText.addEventListener('click', function() {
+                // По клику на текст - змінюємо повідомлення
+                this.setAttribute('value', 'Дякую за увагу! 👋');
+                setTimeout(() => {
+                    this.setAttribute('value', 'Натисни на елементи!');
+                }, 2000);
+            });
+            
+            // --- Соціальні мережі ---
+            githubIcon.addEventListener('click', function() {
+                window.open('https://github.com/your-profile', '_blank');
+            });
+            linkedinIcon.addEventListener('click', function() {
+                window.open('https://linkedin.com/in/your-profile', '_blank');
+            });
+            twitterIcon.addEventListener('click', function() {
+                window.open('https://twitter.com/your-profile', '_blank');
+            });
+            
+            // --- Відстеження знайденого маркера ---
+            targetEntity.addEventListener("targetFound", function() {
+                isTargetFound = true;
+                hintText.textContent = '✅ Візитівка знайдена! Взаємодійте з елементами.';
+                // Автоматично показуємо фон (він і так видимий)
+                
+                // Запускаємо фонову музику (якщо ще не грає)
+                if (!isAudioPlaying) {
+                    bgAudio.play().catch(e => console.log('Аудіо не запустилось автоматично'));
+                    isAudioPlaying = true;
+                }
+            });
+            
+            targetEntity.addEventListener("targetLost", function() {
+                isTargetFound = false;
+                hintText.textContent = '🔍 Візитівка втрачена. Поверніть маркер у кадр.';
+                // Зупиняємо відео та звук, щоб заощадити ресурси
+                if (isVideoVisible) {
+                    videoEl.components.material.material.map.image.pause();
+                }
+                bgAudio.pause();
+                isAudioPlaying = false;
+            });
+            
+            // --- Обробка помилок AR ---
+            const sceneEl = document.querySelector('a-scene');
+            sceneEl.addEventListener("arError", function() {
+                hintText.textContent = '❌ Помилка доступу до камери. Перевірте дозволи.';
+            });
+            
+            console.log('🚀 AR Візитівка завантажена!');
+        });
+    </script>
+</body>
+</html>
