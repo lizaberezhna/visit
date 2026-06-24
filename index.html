@@ -75,7 +75,7 @@
 
     <!-- Сцена AR -->
     <a-scene 
-        mindar-image="imageTargetSrc: ./assets/targets/target.mind; autoStart: true; uiLoading: false; uiScanning: false;"
+        mindar-image="imageTargetSrc: target.mind; autoStart: true; uiLoading: false; uiScanning: false;"
         color-space="sRGB" 
         renderer="colorManagement: true, physicallyCorrectLights" 
         vr-mode-ui="enabled: false" 
@@ -85,21 +85,17 @@
         <!-- Ресурси (медіа та 3D-моделі) -->
         <a-assets>
             <!-- Зображення для фону візитівки -->
-            <img id="cardImage" src="./assets/images/business-card.png">
+            <img id="cardImage" src="business-card.png">
             
             <!-- 3D-модель (наприклад, логотип або аватар) -->
-            <a-asset-item id="avatarModel" src=".\assets\models\avatar.glb"></a-asset-item>
+            <a-asset-item id="avatarModel" src="avatar.glb"></a-asset-item>
             
             <!-- Відеофайл -->
-            <video id="introVideo" src="./assets/videos/intro.mp4" preload="auto" muted playsinline></video>
+            <video id="introVideo" src="intro.mp4" preload="auto" muted playsinline></video>
             
             <!-- Аудіофайл -->
-            <audio id="bgMusic" src="./assets/audio/background.mp3" preload="auto"></audio>
+            <audio id="bgMusic" src="background.mp3" preload="auto"></audio>
             
-            <!-- Додаткові іконки для соцмереж -->
-            <img id="iconGithub" src="./assets/icons/github.png">
-            <img id="iconLinkedin" src="./assets/icons/linkedin.png">
-            <img id="iconTwitter" src="./assets/icons/twitter.png">
         </a-assets>
         
         <!-- Камера -->
